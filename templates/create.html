@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head><title>Add Student</title></head>
+<body>
+    <h1>Add New Student</h1>
+    <form action="/student/create" method="POST" id="create-form">
+        <div>
+            <label>Roll Number:</label>
+            <input type="text" name="roll" required />
+        </div>
+        <div>
+            <label>First Name:</label>
+            <input type="text" name="f_name" required />
+        </div>
+        <div>
+            <label>Last Name:</label>
+            <input type="text" name="l_name" />
+        </div>
+        <div>
+            <label>Select Courses: </label><br/>
+           <input type="checkbox" name="courses" value="1" /> <label>MAD I</label><br/>
+<input type="checkbox" name="courses" value="2" /> <label>DBMS</label><br/>
+<input type="checkbox" name="courses" value="3" /> <label>PDSA</label><br/>
+<input type="checkbox" name="courses" value="4" /> <label>BDM</label><br/>
+
+        </div>
+        <div>
+            <input type="submit" value="Submit" />
+        </div>
+    </form>
+</body>
+</html>
