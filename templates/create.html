@@ -18,11 +18,10 @@
         </div>
         <div>
             <label>Select Courses: </label><br/>
-           <input type="checkbox" name="courses" value="1" /> <label>MAD I</label><br/>
-<input type="checkbox" name="courses" value="2" /> <label>DBMS</label><br/>
-<input type="checkbox" name="courses" value="3" /> <label>PDSA</label><br/>
-<input type="checkbox" name="courses" value="4" /> <label>BDM</label><br/>
-
+            {% for course in courses %}
+                <input type="checkbox" name="courses" value="{{ course.course_id }}" />
+                <label>{{ course.course_name }}</label><br/>
+            {% endfor %}
         </div>
         <div>
             <input type="submit" value="Submit" />

@@ -41,7 +41,8 @@ def index():
 @app.route('/student/create', methods=['GET', 'POST'])
 def create_student():
     if request.method == 'GET':
-        return render_template('create.html')
+        courses = Course.query.all()
+        return render_template('create.html', courses=courses)
 
     # POST method: form submitted
     roll = request.form['roll']
