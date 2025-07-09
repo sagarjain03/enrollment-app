@@ -1,11 +1,10 @@
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, render_template, request, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
 
-# DB Config
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
+# DB Config (fix path)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///instance/database.sqlite3'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -30,45 +29,36 @@ class Enrollments(db.Model):
     estudent_id = db.Column(db.Integer, db.ForeignKey('student.student_id'), nullable=False)
     ecourse_id = db.Column(db.Integer, db.ForeignKey('course.course_id'), nullable=False)
 
-
 @app.route('/')
 def index():
-    students = Student.query.all()
+    students = Student.query.order_by(Student.student_id).all()
     return render_template('index.html', students=students)
 
-
-# this is the create route
 @app.route('/student/create', methods=['GET', 'POST'])
 def create_student():
     if request.method == 'GET':
         courses = Course.query.all()
         return render_template('create.html', courses=courses)
 
-    # POST method: form submitted
     roll = request.form['roll']
     f_name = request.form['f_name']
-    l_name = request.form['l_name']
+    l_name = request.form['l_name'] if request.form['l_name'] else ""
     selected_courses = request.form.getlist('courses')
 
-    # Check if roll number already exists
     existing_student = Student.query.filter_by(roll_number=roll).first()
     if existing_student:
         return render_template('already_exists.html')
 
-    # Add new student
     new_student = Student(roll_number=roll, first_name=f_name, last_name=l_name)
     db.session.add(new_student)
-    db.session.commit()
+    db.session.flush()  # get student_id
 
-    # Add enrollments
     for course_id in selected_courses:
         enrollment = Enrollments(estudent_id=new_student.student_id, ecourse_id=int(course_id))
         db.session.add(enrollment)
     db.session.commit()
 
     return redirect(url_for('index'))
-
-# this is update route
 
 @app.route('/student/<int:student_id>/update', methods=['GET', 'POST'])
 def update_student(student_id):
@@ -82,14 +72,13 @@ def update_student(student_id):
                                courses=courses,
                                enrolled_course_ids=enrolled_course_ids)
 
-    # POST - update values
+    student.roll_number = request.form['roll']  # <-- add this line
     student.first_name = request.form['f_name']
-    student.last_name = request.form['l_name']
+    student.last_name = request.form['l_name'] if request.form['l_name'] else ""
 
-    # Remove old enrollments
     Enrollments.query.filter_by(estudent_id=student_id).delete()
+    db.session.flush()
 
-    # Add new ones
     selected_courses = request.form.getlist('courses')
     for course_id in selected_courses:
         new_enroll = Enrollments(estudent_id=student_id, ecourse_id=int(course_id))
@@ -98,42 +87,21 @@ def update_student(student_id):
     db.session.commit()
     return redirect(url_for('index'))
 
-
-# this is the delete route
 @app.route('/student/<int:student_id>/delete', methods=['GET'])
 def delete_student(student_id):
     student = Student.query.get_or_404(student_id)
-
-    # Delete enrollments first
     Enrollments.query.filter_by(estudent_id=student_id).delete()
-
-    # Delete the student
     db.session.delete(student)
     db.session.commit()
-
     return redirect(url_for('index'))
 
-# this is student detail ka route
 @app.route('/student/<int:student_id>')
 def student_detail(student_id):
-    # Get the student by ID or show 404 if not found
     student = Student.query.get_or_404(student_id)
-
-    # Get the course IDs the student is enrolled in
     enrollment_links = Enrollments.query.filter_by(estudent_id=student_id).all()
     course_ids = [e.ecourse_id for e in enrollment_links]
-
-    # Fetch the actual course details using the course IDs
-    courses = Course.query.filter(Course.course_id.in_(course_ids)).all()
-
-    # DEBUG (optional): Print what's fetched
-    print(f"Student ID: {student_id}")
-    print("Enrolled course IDs:", course_ids)
-    print("Courses found:", [c.course_name for c in courses])
-
-    # Send the data to the template
+    courses = Course.query.filter(Course.course_id.in_(course_ids)).all() if course_ids else []
     return render_template('student_detail.html', student=student, courses=courses)
 
-# Run only
 if __name__ == '__main__':
     app.run(debug=True)
