@@ -58,7 +58,7 @@ def create_student():
     # Add new student
     new_student = Student(roll_number=roll, first_name=f_name, last_name=l_name)
     db.session.add(new_student)
-    db.session.commit()
+    db.session.flush()  # Ensure student_id is available
 
     # Add enrollments
     for course_id in selected_courses:
@@ -88,6 +88,7 @@ def update_student(student_id):
 
     # Remove old enrollments
     Enrollments.query.filter_by(estudent_id=student_id).delete()
+    db.session.flush()  # Ensure deletions are processed
 
     # Add new ones
     selected_courses = request.form.getlist('courses')
