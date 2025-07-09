@@ -72,6 +72,7 @@ def update_student(student_id):
                                courses=courses,
                                enrolled_course_ids=enrolled_course_ids)
 
+    student.roll_number = request.form['roll']  # <-- add this line
     student.first_name = request.form['f_name']
     student.last_name = request.form['l_name'] if request.form['l_name'] else ""
 
