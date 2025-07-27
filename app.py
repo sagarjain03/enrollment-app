@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, redirect, url_for
 app = Flask(__name__)
 
 # DB Config
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.sqlite3'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///week7_database.sqlite3'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -133,6 +133,85 @@ def student_detail(student_id):
 
     # Send the data to the template
     return render_template('student_detail.html', student=student, courses=courses)
+
+# Course Routes
+@app.route('/courses')
+def list_courses():
+    courses = Course.query.all()
+    return render_template('courses.html', courses=courses)
+
+@app.route('/course/create', methods=['GET', 'POST'])
+def create_course():
+    if request.method == 'GET':
+        return render_template('course_create.html')
+    
+    code = request.form['code']
+    c_name = request.form['c_name']
+    desc = request.form['desc']
+    
+    # Check if course code exists
+    existing_course = Course.query.filter_by(course_code=code).first()
+    if existing_course:
+        return render_template('course_already_exists.html')
+    
+    new_course = Course(course_code=code, course_name=c_name, course_description=desc)
+    db.session.add(new_course)
+    db.session.commit()
+    
+    return redirect(url_for('list_courses'))
+
+@app.route('/course/<int:course_id>/update', methods=['GET', 'POST'])
+def update_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    
+    if request.method == 'GET':
+        return render_template('course_update.html', course=course)
+    
+    course.course_name = request.form['c_name']
+    course.course_description = request.form['desc']
+    db.session.commit()
+    
+    return redirect(url_for('list_courses'))
+
+@app.route('/course/<int:course_id>/delete')
+def delete_course(course_id):
+    course = Course.query.get_or_404(course_id)
+    
+    # Delete enrollments first
+    Enrollments.query.filter_by(ecourse_id=course_id).delete()
+    
+    # Delete course
+    db.session.delete(course)
+    db.session.commit()
+    
+    return redirect(url_for('list_courses'))
+
+@app.route('/course/<int:course_id>')
+def course_detail(course_id):
+    course = Course.query.get_or_404(course_id)
+    
+    # Get all enrollments for this course
+    enrollments = Enrollments.query.filter_by(ecourse_id=course_id).all()
+    student_ids = [e.estudent_id for e in enrollments]
+    
+    # Get student details
+    students = Student.query.filter(Student.student_id.in_(student_ids)).all()
+    
+    return render_template('course_detail.html', course=course, students=students)
+
+# Withdraw route
+@app.route('/student/<int:student_id>/withdraw/<int:course_id>')
+def withdraw_course(student_id, course_id):
+    enrollment = Enrollments.query.filter_by(
+        estudent_id=student_id,
+        ecourse_id=course_id
+    ).first()
+    
+    if enrollment:
+        db.session.delete(enrollment)
+        db.session.commit()
+    
+    return redirect(url_for('student_detail', student_id=student_id))
 
 # Run only
 if __name__ == '__main__':
